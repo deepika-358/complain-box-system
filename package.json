@@ -1,0 +1,7 @@
+{
+  "name": "complain-box",
+  "private": true,
+  "scripts": {
+    "build": "echo \"Nothing to build for static frontend\""
+  }
+}
