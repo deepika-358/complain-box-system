@@ -423,6 +423,7 @@ const API = (window.location.hostname === 'localhost' || window.location.hostnam
 let token = localStorage.getItem("cb_token") || null;
 let currentUser = JSON.parse(localStorage.getItem("cb_user") || "null");
 let allComplaints = [];
+let complaintMap = {};
 let categories = [];
 let pieChartInst = null;
 let barChartInst = null;
@@ -703,16 +704,20 @@ function renderBarChart(d) {
 function renderRecentTable(complaints) {
   const tbody = document.getElementById("recent-table");
   if (!complaints.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No complaints yet.</td></tr>`; return; }
-  tbody.innerHTML = complaints.map(c => `
-    <tr>
-      <td><code style="color:var(--accent-light);font-size:0.82rem;">${c.tracking_id}</code></td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.title}">${c.title}</td>
-      <td>${c.category?.name || "—"}</td>
-      <td>${priorityBadge(c.priority)}</td>
-      <td>${statusBadge(c.status)}</td>
-      <td style="font-size:0.82rem;color:var(--text-secondary);">${fmtDate(c.created_at)}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="openStatusModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️ Update</button></td>
-    </tr>`).join("");
+  complaintMap = {};
+  tbody.innerHTML = complaints.map(c => {
+    complaintMap[c.id] = c;
+    return `
+      <tr>
+        <td><code style="color:var(--accent-light);font-size:0.82rem;">${c.tracking_id}</code></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.title}">${c.title}</td>
+        <td>${c.category?.name || "—"}</td>
+        <td>${priorityBadge(c.priority)}</td>
+        <td>${statusBadge(c.status)}</td>
+        <td style="font-size:0.82rem;color:var(--text-secondary);">${fmtDate(c.created_at)}</td>
+        <td><button class="btn btn-secondary btn-sm" onclick="openStatusModalById(${c.id})">✏️ Update</button></td>
+      </tr>`;
+  }).join("");
 }
 
 // ─── ALL COMPLAINTS ───────────────────────────────────────────
@@ -724,6 +729,7 @@ async function loadAllComplaints() {
     const sel = document.getElementById("filter-category");
     sel.innerHTML = '<option value="">All Categories</option>';
     cats.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+    complaintMap = {};
     renderComplaintsTable(allComplaints);
   } catch (ex) { showToast("Error loading complaints: " + ex.message, "error"); }
 }
@@ -751,20 +757,23 @@ function renderComplaintsTable(list) {
   if (!list.length) { tbody.innerHTML = ""; empty.classList.remove("hidden"); return; }
   empty.classList.add("hidden");
 
-  tbody.innerHTML = list.map(c => `
-    <tr>
-      <td><code style="color:var(--accent-light);font-size:0.8rem;">${c.tracking_id}</code></td>
-      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.title}">${c.title}</td>
-      <td><span style="font-size:0.85rem;">${c.category?.name || "—"}</span></td>
-      <td>${priorityBadge(c.priority)}</td>
-      <td>${statusBadge(c.status)}</td>
-      <td style="font-size:0.8rem;color:var(--text-secondary);">${fmtDate(c.created_at)}</td>
-      <td style="display:flex;gap:6px;">
-        <button class="btn btn-secondary btn-sm" onclick="openStatusModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️ Update</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteComplaintFn(${c.id}, '${c.tracking_id}')">🗑️ Delete</button>
-      </td>
-    </tr>`).join("");
-  }
+  tbody.innerHTML = list.map(c => {
+    complaintMap[c.id] = c;
+    return `
+      <tr>
+        <td><code style="color:var(--accent-light);font-size:0.8rem;">${c.tracking_id}</code></td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.title}">${c.title}</td>
+        <td><span style="font-size:0.85rem;">${c.category?.name || "—"}</span></td>
+        <td>${priorityBadge(c.priority)}</td>
+        <td>${statusBadge(c.status)}</td>
+        <td style="font-size:0.8rem;color:var(--text-secondary);">${fmtDate(c.created_at)}</td>
+        <td style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="openStatusModalById(${c.id})">✏️ Update</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteComplaintFn(${c.id}, '${c.tracking_id}')">🗑️ Delete</button>
+        </td>
+      </tr>`;
+  }).join("");
+}
 
 // ─── STATUS MODAL ─────────────────────────────────────────────
 function openStatusModal(complaint) {
@@ -793,6 +802,12 @@ function openStatusModal(complaint) {
   })();
 
   document.getElementById("status-modal").classList.add("open");
+}
+
+function openStatusModalById(id) {
+  const complaint = complaintMap[id];
+  if (!complaint) return showToast('Complaint not found in memory.', 'error');
+  openStatusModal(complaint);
 }
 
 function renderModalHistory(history) {
