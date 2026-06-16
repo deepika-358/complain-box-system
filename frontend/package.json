@@ -1,0 +1,5 @@
+{
+  "name": "complain-box-frontend",
+  "description": "Static frontend — open index.html directly in browser",
+  "note": "No build step needed. Just open frontend/index.html after starting the Flask backend."
+}

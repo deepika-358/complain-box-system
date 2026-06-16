@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Complain Box System</title>
+  <meta name="description" content="Anonymous complaint submission system with real-time resolution tracking and admin dashboard." />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NAVIGATION
+════════════════════════════════════════════════════════════ -->
+<nav class="navbar" id="main-navbar">
+  <a class="navbar-brand" href="#" onclick="navigate('home')">
+    <div class="logo-icon">📬</div>
+    Complain Box
+  </a>
+  <div class="nav-links" id="public-nav">
+    <a class="nav-link active" id="nav-home"   onclick="navigate('home')">Home</a>
+    <a class="nav-link"        id="nav-submit"  onclick="navigate('submit')">Submit Complaint</a>
+    <a class="nav-link"        id="nav-track"   onclick="navigate('track')">Track Status</a>
+    <a class="nav-link"        id="nav-login"   onclick="navigate('login')">Admin Login</a>
+  </div>
+  <div class="nav-links hidden" id="admin-nav">
+    <a class="nav-link active" id="nav-dashboard"  onclick="navigate('dashboard')">Dashboard</a>
+    <a class="nav-link"        id="nav-complaints"  onclick="navigate('complaints')">All Complaints</a>
+    <button class="btn-nav" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 1 — HOME
+════════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <section class="hero">
+    <h1>Your Voice Matters 📣</h1>
+    <p>Submit complaints anonymously. We ensure every concern is heard and resolved promptly.</p>
+    <div class="flex-center gap-2" style="flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="navigate('submit')">📝 Submit a Complaint</button>
+      <button class="btn btn-secondary" onclick="navigate('track')">🔍 Track My Complaint</button>
+    </div>
+  </section>
+
+  <div class="container">
+    <!-- Feature Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;margin-bottom:3rem;">
+      <div class="card">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">🕵️</div>
+        <h3 style="margin-bottom:0.5rem;">100% Anonymous</h3>
+        <p class="text-muted" style="font-size:0.9rem;">No personal information required. Your identity is completely protected.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">⚡</div>
+        <h3 style="margin-bottom:0.5rem;">Fast Resolution</h3>
+        <p class="text-muted" style="font-size:0.9rem;">Complaints are categorized and routed to the right team instantly.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">📊</div>
+        <h3 style="margin-bottom:0.5rem;">Real-time Tracking</h3>
+        <p class="text-muted" style="font-size:0.9rem;">Track every step of your complaint from submission to resolution.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">🔔</div>
+        <h3 style="margin-bottom:0.5rem;">Auto Notifications</h3>
+        <p class="text-muted" style="font-size:0.9rem;">Responsible staff are notified automatically on every submission.</p>
+      </div>
+    </div>
+
+    <!-- Live Stats -->
+    <div class="card">
+      <div class="card-title">📈 Live Statistics</div>
+      <div class="stats-grid" id="home-stats">
+        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value" id="hs-total">—</div><div class="stat-label">Total Complaints</div></div>
+        <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-value" id="hs-pending">—</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-value" id="hs-progress">—</div><div class="stat-label">In Progress</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="hs-resolved">—</div><div class="stat-label">Resolved</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 2 — SUBMIT COMPLAINT
+════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-submit">
+  <div class="container-sm" style="padding-top:2rem;">
+    <div style="margin-bottom:2rem;">
+      <h2 style="font-size:1.8rem;font-weight:800;margin-bottom:0.5rem;">Submit a Complaint</h2>
+      <p class="text-muted">All submissions are anonymous by default. Fill in your concern below.</p>
+    </div>
+
+    <!-- Success State (hidden initially) -->
+    <div class="success-box hidden" id="submit-success">
+      <div class="success-icon">🎉</div>
+      <h3 style="font-size:1.3rem;font-weight:700;margin-bottom:0.5rem;">Complaint Submitted!</h3>
+      <p class="text-muted" style="margin-bottom:0.5rem;">Your tracking ID is:</p>
+      <div class="tracking-id-display" id="success-tracking-id">CB-XXXXXXXX</div>
+      <p class="text-muted" style="font-size:0.875rem;margin-bottom:1.5rem;">
+        Save this ID to track your complaint status anytime.
+      </p>
+      <div class="flex-center gap-2" style="flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="copyTrackingId()">📋 Copy ID</button>
+        <button class="btn btn-secondary" onclick="resetForm()">+ Submit Another</button>
+        <button class="btn btn-secondary" onclick="navigate('track')">🔍 Track Status</button>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="card" id="complaint-form-card">
+      <form id="complaint-form" onsubmit="submitComplaint(event)">
+        <div class="form-group">
+          <label class="form-label">Category <span>*</span></label>
+          <select class="form-control" id="f-category" required>
+            <option value="">— Select Category —</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Priority <span>*</span></label>
+          <select class="form-control" id="f-priority" required>
+            <option value="low">🟢 Low — General feedback</option>
+            <option value="medium" selected>🟡 Medium — Needs attention</option>
+            <option value="high">🔴 High — Urgent issue</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Title <span>*</span></label>
+          <input type="text" class="form-control" id="f-title"
+            placeholder="Brief title of your complaint" required maxlength="200" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description <span>*</span></label>
+          <textarea class="form-control" id="f-description"
+            placeholder="Describe your complaint in detail. Include location, dates, and specific issues." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Your Email <span style="color:var(--text-muted);font-weight:400">(optional — to get resolution update)</span></label>
+          <input type="email" class="form-control" id="f-email"
+            placeholder="you@example.com (leave blank to stay fully anonymous)" />
+        </div>
+
+        <div id="form-error" class="alert alert-error hidden"></div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="submit-btn">
+          <span id="submit-btn-text">📤 Submit Complaint</span>
+          <div class="spinner hidden" id="submit-spinner"></div>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 3 — TRACK STATUS
+════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-track">
+  <div class="container-sm" style="padding-top:2rem;">
+    <div style="margin-bottom:2rem;">
+      <h2 style="font-size:1.8rem;font-weight:800;margin-bottom:0.5rem;">Track Your Complaint</h2>
+      <p class="text-muted">Enter your tracking ID to see the current status and full timeline.</p>
+    </div>
+
+    <div class="card mb-3">
+      <div class="flex gap-1" style="align-items:flex-end;">
+        <div class="form-group" style="flex:1;margin:0;">
+          <label class="form-label">Tracking ID</label>
+          <input type="text" class="form-control" id="track-input"
+            placeholder="e.g. CB-A1B2C3D4" style="text-transform:uppercase;"
+            oninput="this.value=this.value.toUpperCase()" />
+        </div>
+        <button class="btn btn-primary" onclick="trackComplaint()" style="margin-left:10px;">
+          🔍 Search
+        </button>
+      </div>
+      <div id="track-error" class="alert alert-error hidden mt-2"></div>
+    </div>
+
+    <!-- Result -->
+    <div id="track-result" class="hidden">
+      <div class="card mb-3">
+        <div class="flex-between mb-2">
+          <div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">TRACKING ID</div>
+            <div style="font-family:monospace;font-size:1.2rem;font-weight:700;color:var(--accent-light);" id="tr-id">—</div>
+          </div>
+          <div id="tr-status-badge"></div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:0.5rem;">
+          <div class="grid-2" style="gap:1rem;">
+            <div>
+              <div class="text-muted" style="font-size:0.78rem;margin-bottom:4px;">CATEGORY</div>
+              <div id="tr-category" style="font-weight:500;">—</div>
+            </div>
+            <div>
+              <div class="text-muted" style="font-size:0.78rem;margin-bottom:4px;">PRIORITY</div>
+              <div id="tr-priority">—</div>
+            </div>
+            <div>
+              <div class="text-muted" style="font-size:0.78rem;margin-bottom:4px;">SUBMITTED</div>
+              <div id="tr-date" style="font-size:0.9rem;">—</div>
+            </div>
+            <div>
+              <div class="text-muted" style="font-size:0.78rem;margin-bottom:4px;">LAST UPDATED</div>
+              <div id="tr-updated" style="font-size:0.9rem;">—</div>
+            </div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:1rem;">
+          <div class="text-muted" style="font-size:0.78rem;margin-bottom:6px;">TITLE</div>
+          <div id="tr-title" style="font-weight:600;margin-bottom:0.75rem;">—</div>
+          <div class="text-muted" style="font-size:0.78rem;margin-bottom:6px;">DESCRIPTION</div>
+          <div id="tr-desc" style="font-size:0.9rem;color:var(--text-secondary);">—</div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="card">
+        <div class="card-title">📅 Status Timeline</div>
+        <div class="timeline" id="tr-timeline"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 4 — ADMIN LOGIN
+════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-login">
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="big-icon">🔐</div>
+        <h2 style="font-weight:800;margin-bottom:4px;">Admin Login</h2>
+        <p class="text-muted" style="font-size:0.875rem;">Complain Box Management Portal</p>
+      </div>
+      <form onsubmit="adminLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-control" id="login-user" placeholder="shine" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-control" id="login-pass" placeholder="262425" required />
+        </div>
+        <div id="login-error" class="alert alert-error hidden mb-2"></div>
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+          <span id="login-btn-text">Sign In</span>
+          <div class="spinner hidden" id="login-spinner"></div>
+        </button>
+      </form>
+      <p class="text-muted text-center mt-3" style="font-size:0.8rem;">
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 5 — ADMIN DASHBOARD
+════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-dashboard">
+  <div class="container" style="padding-top:2rem;">
+    <div class="flex-between mb-3" style="flex-wrap:wrap;gap:1rem;">
+      <div>
+        <h2 style="font-size:1.8rem;font-weight:800;margin-bottom:4px;">Dashboard</h2>
+        <p class="text-muted">Overview of all complaints and system statistics</p>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">🔄 Refresh</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="dash-stats">
+      <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value" id="ds-total">—</div><div class="stat-label">Total Complaints</div></div>
+      <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-value" id="ds-pending">—</div><div class="stat-label">Pending</div></div>
+      <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-value" id="ds-progress">—</div><div class="stat-label">In Progress</div></div>
+      <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="ds-resolved">—</div><div class="stat-label">Resolved</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="card">
+        <div class="card-title">🥧 Complaints by Category</div>
+        <div class="chart-wrapper"><canvas id="pie-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Status Distribution</div>
+        <div class="chart-wrapper"><canvas id="bar-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Recent Complaints -->
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title" style="margin:0;">🕐 Recent Complaints</div>
+        <button class="btn btn-secondary btn-sm" onclick="navigate('complaints')">View All →</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Tracking ID</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="recent-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 6 — ALL COMPLAINTS
+════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-complaints">
+  <div class="container" style="padding-top:2rem;">
+    <div class="flex-between mb-3" style="flex-wrap:wrap;gap:1rem;">
+      <div>
+        <h2 style="font-size:1.8rem;font-weight:800;margin-bottom:4px;">All Complaints</h2>
+        <p class="text-muted" id="complaints-count">Loading...</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <input type="text" class="form-control" id="filter-search" placeholder="🔍 Search title..." oninput="filterComplaints()" />
+      <select class="form-control" id="filter-status" onchange="filterComplaints()">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="in_progress">In Progress</option>
+        <option value="resolved">Resolved</option>
+      </select>
+      <select class="form-control" id="filter-category" onchange="filterComplaints()">
+        <option value="">All Categories</option>
+      </select>
+      <select class="form-control" id="filter-priority" onchange="filterComplaints()">
+        <option value="">All Priority</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="all-complaints-table"></tbody>
+        </table>
+        <div class="empty-state hidden" id="no-complaints">
+          <div class="empty-icon">📭</div>
+          <p>No complaints found matching the filters.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL — Update Status
+════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="status-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Update Complaint Status</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-complaint-info" style="background:var(--bg-secondary);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:1.5rem;font-size:0.875rem;">
+    </div>
+    <div id="modal-history" style="margin-bottom:1rem;max-height:220px;overflow:auto;"></div>
+    <div class="form-group">
+      <label class="form-label">New Status</label>
+      <select class="form-control" id="modal-status">
+        <option value="pending">⏳ Pending</option>
+        <option value="in_progress">🔄 In Progress</option>
+        <option value="resolved">✅ Resolved</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (optional)</label>
+      <textarea class="form-control" id="modal-note" placeholder="Add a resolution note or comment..." style="min-height:80px;"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="applyStatusUpdate()">✅ Update Status</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+<script>
+// ─── Config ────────────────────────────────────────────────
+// Use local backend when developing, otherwise default to the deployed URL
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+  ? 'http://localhost:5000'
+  : 'https://complain-box-system.onrender.com';
+let token = localStorage.getItem("cb_token") || null;
+let currentUser = JSON.parse(localStorage.getItem("cb_user") || "null");
+let allComplaints = [];
+let categories = [];
+let pieChartInst = null;
+let barChartInst = null;
+let activeStatusComplaint = null;
+
+// ─── API Helper ─────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(API + path, { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// ─── Navigation ─────────────────────────────────────────────
+function navigate(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
+  const pg = document.getElementById(`page-${page}`);
+  if (pg) pg.classList.add("active");
+  const nl = document.getElementById(`nav-${page}`);
+  if (nl) nl.classList.add("active");
+  window.scrollTo(0, 0);
+
+  // Auth guard — admin pages
+  if ((page === "dashboard" || page === "complaints") && !token) {
+    navigate("login"); return;
+  }
+
+  // Page-specific loaders
+  if (page === "home")        loadHomeStats();
+  if (page === "submit")      loadCategories();
+  if (page === "dashboard")   loadDashboard();
+  if (page === "complaints")  loadAllComplaints();
+}
+
+function setAuthUI() {
+  const isAdmin = !!token;
+  document.getElementById("public-nav").classList.toggle("hidden", isAdmin);
+  document.getElementById("admin-nav").classList.toggle("hidden", !isAdmin);
+}
+
+// ─── Toast ──────────────────────────────────────────────────
+function showToast(msg, type = "info") {
+  const icons = { success: "✅", error: "❌", info: "ℹ️" };
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById("toast-container").appendChild(t);
+  setTimeout(() => { t.style.animation = "fadeOut 0.4s forwards"; setTimeout(() => t.remove(), 400); }, 3500);
+}
+
+// ─── HOME STATS ─────────────────────────────────────────────
+async function loadHomeStats() {
+  try {
+    const d = await api("/api/dashboard/stats");
+    document.getElementById("hs-total").textContent   = d.total;
+    document.getElementById("hs-pending").textContent  = d.pending;
+    document.getElementById("hs-progress").textContent = d.in_progress;
+    document.getElementById("hs-resolved").textContent = d.resolved;
+  } catch { /* silently fail on home */ }
+}
+
+// ─── LOAD CATEGORIES ────────────────────────────────────────
+async function loadCategories() {
+  try {
+    categories = await api("/api/categories");
+    const sel = document.getElementById("f-category");
+    sel.innerHTML = '<option value="">— Select Category —</option>';
+    categories.forEach(c => {
+      const o = document.createElement("option");
+      o.value = c.id; o.textContent = c.name;
+      sel.appendChild(o);
+    });
+  } catch (e) { showToast("Cannot reach server. Is Flask running?", "error"); }
+}
+
+// ─── SUBMIT COMPLAINT ────────────────────────────────────────
+async function submitComplaint(e) {
+  e.preventDefault();
+  const err = document.getElementById("form-error");
+  err.classList.add("hidden");
+  const btn = document.getElementById("submit-btn");
+  const btnText = document.getElementById("submit-btn-text");
+  const spinner = document.getElementById("submit-spinner");
+
+  btnText.textContent = "Submitting...";
+  spinner.classList.remove("hidden");
+  btn.disabled = true;
+
+  try {
+    const body = {
+      title:          document.getElementById("f-title").value.trim(),
+      description:    document.getElementById("f-description").value.trim(),
+      category_id:    parseInt(document.getElementById("f-category").value),
+      priority:       document.getElementById("f-priority").value,
+      is_anonymous:   true,
+      submitter_email:document.getElementById("f-email").value.trim() || null,
+    };
+    const res = await api("/api/complaints", { method: "POST", body: JSON.stringify(body) });
+    document.getElementById("success-tracking-id").textContent = res.tracking_id;
+    document.getElementById("complaint-form-card").classList.add("hidden");
+    document.getElementById("submit-success").classList.remove("hidden");
+    showToast("Complaint submitted successfully!", "success");
+  } catch (ex) {
+    err.textContent = "⚠️ " + ex.message;
+    err.classList.remove("hidden");
+  } finally {
+    btnText.textContent = "📤 Submit Complaint";
+    spinner.classList.add("hidden");
+    btn.disabled = false;
+  }
+}
+
+function resetForm() {
+  document.getElementById("complaint-form").reset();
+  document.getElementById("complaint-form-card").classList.remove("hidden");
+  document.getElementById("submit-success").classList.add("hidden");
+}
+
+function copyTrackingId() {
+  const id = document.getElementById("success-tracking-id").textContent;
+  navigator.clipboard.writeText(id).then(() => showToast("Tracking ID copied!", "success"));
+}
+
+// ─── TRACK COMPLAINT ─────────────────────────────────────────
+async function trackComplaint() {
+  const id = document.getElementById("track-input").value.trim().toUpperCase();
+  const err = document.getElementById("track-error");
+  const res = document.getElementById("track-result");
+  err.classList.add("hidden"); res.classList.add("hidden");
+
+  if (!id) { err.textContent = "⚠️ Please enter a tracking ID."; err.classList.remove("hidden"); return; }
+
+  try {
+    const c = await api(`/api/complaints/track/${id}`);
+    document.getElementById("tr-id").textContent       = c.tracking_id;
+    document.getElementById("tr-category").textContent  = c.category?.name || "—";
+    document.getElementById("tr-title").textContent     = c.title;
+    document.getElementById("tr-desc").textContent      = c.description;
+    document.getElementById("tr-date").textContent      = fmtDate(c.created_at);
+    document.getElementById("tr-updated").textContent   = fmtDate(c.updated_at);
+
+    document.getElementById("tr-status-badge").innerHTML  = statusBadge(c.status);
+    document.getElementById("tr-priority").innerHTML      = priorityBadge(c.priority);
+
+    // Timeline
+    const tl = document.getElementById("tr-timeline");
+    tl.innerHTML = "";
+    (c.history || []).forEach((h, i, arr) => {
+      const isLast = i === arr.length - 1;
+      tl.innerHTML += `
+        <div class="timeline-item">
+          <div>
+            <div class="timeline-dot"></div>
+            ${!isLast ? '<div class="timeline-line"></div>' : ''}
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-title">${h.new_status === 'pending' ? '📋 Submitted' : h.new_status === 'in_progress' ? '🔄 In Progress' : '✅ Resolved'}</div>
+            <div class="timeline-date">${fmtDate(h.changed_at)} · by ${h.changed_by}</div>
+            ${h.note ? `<div class="timeline-note">${h.note}</div>` : ''}
+          </div>
+        </div>`;
+    });
+
+    res.classList.remove("hidden");
+  } catch (ex) {
+    err.textContent = "⚠️ " + ex.message;
+    err.classList.remove("hidden");
+  }
+}
+
+// ─── ADMIN LOGIN ─────────────────────────────────────────────
+async function adminLogin(e) {
+  e.preventDefault();
+  const err = document.getElementById("login-error");
+  const btn = document.getElementById("login-btn");
+  err.classList.add("hidden");
+  btn.disabled = true;
+  document.getElementById("login-btn-text").textContent = "Signing in...";
+  document.getElementById("login-spinner").classList.remove("hidden");
+
+  try {
+    const d = await api("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        username: document.getElementById("login-user").value,
+        password: document.getElementById("login-pass").value,
+      }),
+    });
+    token = d.token; currentUser = d.user;
+    localStorage.setItem("cb_token", token);
+    localStorage.setItem("cb_user", JSON.stringify(currentUser));
+    setAuthUI();
+    showToast(`Welcome back, ${currentUser.username}! 👋`, "success");
+    navigate("dashboard");
+  } catch (ex) {
+    err.textContent = "⚠️ " + ex.message;
+    err.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    document.getElementById("login-btn-text").textContent = "Sign In";
+    document.getElementById("login-spinner").classList.add("hidden");
+  }
+}
+
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem("cb_token");
+  localStorage.removeItem("cb_user");
+  setAuthUI();
+  showToast("Logged out successfully.", "info");
+  navigate("home");
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const d = await api("/api/dashboard/stats");
+    document.getElementById("ds-total").textContent    = d.total;
+    document.getElementById("ds-pending").textContent  = d.pending;
+    document.getElementById("ds-progress").textContent = d.in_progress;
+    document.getElementById("ds-resolved").textContent = d.resolved;
+
+    renderPieChart(d.by_category);
+    renderBarChart(d);
+    renderRecentTable(d.recent);
+  } catch (ex) { showToast("Dashboard error: " + ex.message, "error"); }
+}
+
+function renderPieChart(byCat) {
+  const ctx = document.getElementById("pie-chart");
+  if (pieChartInst) pieChartInst.destroy();
+  const data = byCat.filter(c => c.count > 0);
+  pieChartInst = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: data.map(c => c.name),
+      datasets: [{ data: data.map(c => c.count), backgroundColor: data.map(c => c.color), borderWidth: 2, borderColor: "#1a1a2e" }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11 }, padding: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+      }
+    }
+  });
+}
+
+function renderBarChart(d) {
+  const ctx = document.getElementById("bar-chart");
+  if (barChartInst) barChartInst.destroy();
+  barChartInst = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Pending", "In Progress", "Resolved"],
+      datasets: [{
+        label: "Complaints",
+        data: [d.pending, d.in_progress, d.resolved],
+        backgroundColor: ["rgba(245,158,11,0.7)", "rgba(99,102,241,0.7)", "rgba(34,197,94,0.7)"],
+        borderColor:     ["#f59e0b", "#6366f1", "#22c55e"],
+        borderWidth: 2, borderRadius: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#94a3b8" } },
+        y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#94a3b8", stepSize: 1 }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderRecentTable(complaints) {
+  const tbody = document.getElementById("recent-table");
+  if (!complaints.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No complaints yet.</td></tr>`; return; }
+  tbody.innerHTML = complaints.map(c => `
+    <tr>
+      <td><code style="color:var(--accent-light);font-size:0.82rem;">${c.tracking_id}</code></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.title}">${c.title}</td>
+      <td>${c.category?.name || "—"}</td>
+      <td>${priorityBadge(c.priority)}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td style="font-size:0.82rem;color:var(--text-secondary);">${fmtDate(c.created_at)}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openStatusModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️ Update</button></td>
+    </tr>`).join("");
+}
+
+// ─── ALL COMPLAINTS ───────────────────────────────────────────
+async function loadAllComplaints() {
+  try {
+    allComplaints = await api("/api/complaints");
+    // Fill category filter
+    const cats = await api("/api/categories");
+    const sel = document.getElementById("filter-category");
+    sel.innerHTML = '<option value="">All Categories</option>';
+    cats.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+    renderComplaintsTable(allComplaints);
+  } catch (ex) { showToast("Error loading complaints: " + ex.message, "error"); }
+}
+
+function filterComplaints() {
+  const search   = document.getElementById("filter-search").value.toLowerCase();
+  const status   = document.getElementById("filter-status").value;
+  const catId    = document.getElementById("filter-category").value;
+  const priority = document.getElementById("filter-priority").value;
+
+  const filtered = allComplaints.filter(c =>
+    (!search   || c.title.toLowerCase().includes(search)) &&
+    (!status   || c.status === status) &&
+    (!catId    || String(c.category?.id) === catId) &&
+    (!priority || c.priority === priority)
+  );
+  renderComplaintsTable(filtered);
+}
+
+function renderComplaintsTable(list) {
+  const tbody = document.getElementById("all-complaints-table");
+  const empty = document.getElementById("no-complaints");
+  document.getElementById("complaints-count").textContent = `${list.length} complaint(s) found`;
+
+  if (!list.length) { tbody.innerHTML = ""; empty.classList.remove("hidden"); return; }
+  empty.classList.add("hidden");
+
+  tbody.innerHTML = list.map(c => `
+    <tr>
+      <td><code style="color:var(--accent-light);font-size:0.8rem;">${c.tracking_id}</code></td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.title}">${c.title}</td>
+      <td><span style="font-size:0.85rem;">${c.category?.name || "—"}</span></td>
+      <td>${priorityBadge(c.priority)}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td style="font-size:0.8rem;color:var(--text-secondary);">${fmtDate(c.created_at)}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="openStatusModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️ Update</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteComplaintFn(${c.id}, '${c.tracking_id}')">🗑️ Delete</button>
+      </td>
+    </tr>`).join("");
+  }
+
+// ─── STATUS MODAL ─────────────────────────────────────────────
+function openStatusModal(complaint) {
+  activeStatusComplaint = complaint;
+  document.getElementById("modal-complaint-info").innerHTML = `
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <div style="flex:1;">
+        <div style="font-weight:600;margin-bottom:4px;">${complaint.title}</div>
+        <div style="color:var(--text-muted);font-size:0.8rem;">${complaint.tracking_id} · ${complaint.category?.name || ""}</div>
+      </div>
+      <div>${statusBadge(complaint.status)}</div>
+    </div>`;
+  document.getElementById("modal-status").value = complaint.status;
+  document.getElementById("modal-note").value = "";
+
+  // Load full complaint with history for admin actions
+  (async () => {
+    try {
+      const full = await api(`/api/complaints/track/${complaint.tracking_id}`);
+      renderModalHistory(full.history || []);
+      // update status select to match latest
+      document.getElementById("modal-status").value = full.status || complaint.status;
+    } catch (e) {
+      document.getElementById("modal-history").innerHTML = "<div class=\"text-muted\">Could not load history.</div>";
+    }
+  })();
+
+  document.getElementById("status-modal").classList.add("open");
+}
+
+function renderModalHistory(history) {
+  const el = document.getElementById("modal-history");
+  if (!history.length) { el.innerHTML = '<div class="text-muted">No history entries.</div>'; return; }
+  el.innerHTML = history.map(h => `
+    <div style="padding:8px;border-radius:6px;border:1px solid var(--border);margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;">
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:0.95rem;">${h.new_status === 'pending' ? '📋 Submitted' : h.new_status === 'in_progress' ? '🔄 In Progress' : '✅ Resolved'}</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);">${fmtDate(h.changed_at)} · by ${h.changed_by}</div>
+        ${h.note ? `<div style="margin-top:6px;color:var(--text-secondary);">${h.note}</div>` : ''}
+      </div>
+      <div style="margin-left:12px;">
+        ${token ? `<button class="btn btn-danger btn-sm" onclick="deleteHistory(${h.id})">🗑️</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function deleteHistory(historyId) {
+  if (!token) { showToast('Only admins can delete history.', 'error'); return; }
+  if (!confirm('Delete this history entry? This cannot be undone.')) return;
+  try {
+    await api(`/api/history/${historyId}`, { method: 'DELETE' });
+    showToast('History entry deleted', 'success');
+    // refresh modal and admin lists
+    if (activeStatusComplaint) openStatusModal(activeStatusComplaint);
+    const activePage = document.querySelector('.page.active')?.id;
+    if (activePage === 'page-dashboard') loadDashboard();
+    if (activePage === 'page-complaints') loadAllComplaints();
+  } catch (e) { showToast('Delete failed: ' + e.message, 'error'); }
+}
+
+async function deleteComplaintFn(complaintId, trackingId) {
+  if (!token) { showToast('Only admins can delete complaints.', 'error'); return; }
+  if (!confirm(`Delete complaint ${trackingId}? This cannot be undone.`)) return;
+  try {
+    await api(`/api/complaints/${complaintId}`, { method: 'DELETE' });
+    showToast('Complaint deleted successfully', 'success');
+    // Refresh the current page
+    const activePage = document.querySelector('.page.active')?.id;
+    if (activePage === 'page-dashboard') loadDashboard();
+    if (activePage === 'page-complaints') loadAllComplaints();
+  } catch (e) { showToast('Delete failed: ' + e.message, 'error'); }
+}
+
+function closeModal() {
+  document.getElementById("status-modal").classList.remove("open");
+  activeStatusComplaint = null;
+}
+
+async function applyStatusUpdate() {
+  if (!activeStatusComplaint) return;
+  const newStatus = document.getElementById("modal-status").value;
+  const note      = document.getElementById("modal-note").value.trim();
+
+  try {
+    await api(`/api/complaints/${activeStatusComplaint.id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: newStatus, note, admin_id: currentUser?.id }),
+    });
+    showToast("Status updated successfully!", "success");
+    closeModal();
+    // Refresh current page
+    const activePage = document.querySelector(".page.active")?.id;
+    if (activePage === "page-dashboard")   loadDashboard();
+    if (activePage === "page-complaints")  loadAllComplaints();
+  } catch (ex) { showToast("Error: " + ex.message, "error"); }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
+function statusBadge(s) {
+  const map = {
+    pending:     ["badge-pending",  "⏳ Pending"],
+    in_progress: ["badge-progress", "🔄 In Progress"],
+    resolved:    ["badge-resolved", "✅ Resolved"],
+  };
+  const [cls, label] = map[s] || ["", s];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function priorityBadge(p) {
+  const map = { high: "badge-high", medium: "badge-medium", low: "badge-low" };
+  return `<span class="badge ${map[p] || ''}">${p?.toUpperCase() || "—"}</span>`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  // Ensure correct timezone handling
+  return date.toLocaleString("en-IN", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+}
+
+// Close modal on overlay click
+document.getElementById("status-modal").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ─── Init ────────────────────────────────────────────────────
+(function init() {
+  setAuthUI();
+  if (token) {
+    navigate("dashboard");
+  } else {
+    navigate("home");
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Complain Box — Git ignore file
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.db
+*.sqlite
+.DS_Store
+Thumbs.db
+venv/
+env/
+.venv/
+node_modules/
+dist/
+build/
+*.log
